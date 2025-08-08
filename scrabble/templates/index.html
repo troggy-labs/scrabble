@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scrabble Multiplayer</title>
+    <script>
+        let playerId = null;
+        async function joinGame() {
+            const res = await fetch('/join', {method: 'POST'});
+            const data = await res.json();
+            playerId = data.player_id;
+            document.getElementById('player').textContent = 'Player ' + playerId;
+            loadBoard();
+        }
+        async function loadBoard() {
+            const res = await fetch('/board');
+            const data = await res.json();
+            document.getElementById('turn').textContent = data.current_player ? 'Current turn: Player ' + data.current_player : 'Waiting for players...';
+            const board = data.board;
+            const table = document.getElementById('board');
+            table.innerHTML = '';
+            for (let r = 0; r < board.length; r++) {
+                const row = document.createElement('tr');
+                for (let c = 0; c < board[r].length; c++) {
+                    const cell = document.createElement('td');
+                    cell.textContent = board[r][c];
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            }
+        }
+        async function placeTile() {
+            const row = parseInt(document.getElementById('row').value);
+            const col = parseInt(document.getElementById('col').value);
+            const letter = document.getElementById('letter').value;
+            const res = await fetch('/place', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({player_id: playerId, row: row, col: col, letter: letter})
+            });
+            if (res.ok) {
+                loadBoard();
+            } else {
+                const data = await res.json();
+                alert(data.error);
+            }
+        }
+        window.onload = loadBoard;
+    </script>
+    <style>
+        table { border-collapse: collapse; }
+        td { width: 20px; height: 20px; border: 1px solid #000; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Scrabble</h1>
+    <button onclick="joinGame()">Join Game</button>
+    <div id="player"></div>
+    <div id="turn"></div>
+    <table id="board"></table>
+    <div>
+        <input id="row" type="number" placeholder="Row" min="0" max="14">
+        <input id="col" type="number" placeholder="Col" min="0" max="14">
+        <input id="letter" type="text" maxlength="1" placeholder="Letter">
+        <button onclick="placeTile()">Place Tile</button>
+    </div>
+</body>
+</html>
